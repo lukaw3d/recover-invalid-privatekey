@@ -5,9 +5,14 @@
       body { font-family: sans-serif; }
       textarea { max-width: 100%; }
     </style>
+    <script
+      src="https://cdn.jsdelivr.net/npm/tweetnacl@1.0.3/nacl-fast.min.js"
+      integrity="sha384-05+sicyRJQ56XpL4U9HJ8YbtSzFDvAg7apPKOGV6A0JsAJKFM68jp5oLnUjG5mEp"
+      crossorigin="anonymous"
+    ></script>
     <script type="module">
       // @ts-check
-      import nacl from 'https://cdn.jsdelivr.net/npm/tweetnacl@1.0.3/+esm'
+      const nacl = window.nacl
 
       const base64chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/='.split('')
       const base64ToUint = (base64 = '') => Uint8Array.from(window.atob(base64), (v) => v.charCodeAt(0));
