@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <style>
+      body { font-family: sans-serif; }
+      textarea { max-width: 100%; }
+    </style>
+    <script type="module">
+      // @ts-check
+      import nacl from 'https://cdn.jsdelivr.net/npm/tweetnacl@1.0.3/+esm'
+
+      const base64chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/='.split('')
+      const base64ToUint = (base64 = '') => Uint8Array.from(window.atob(base64), (v) => v.charCodeAt(0));
+      function validatePrivateKey(base64key) {
+        try {
+          const key = base64ToUint(base64key)
+          /** @type {Uint8Array} */
+          const pkInKey = nacl.sign.keyPair.fromSecretKey(key).publicKey
+          const sk = new Uint8Array(32);
+          for (let i = 0; i < 32; i++) sk[i] = key[i];
+          /** @type {Uint8Array} */
+          const pkFromSk = nacl.sign.keyPair.fromSeed(sk).publicKey
+          return pkInKey.every((v, idx) => pkInKey[idx] === pkFromSk[idx])
+        } catch (e) {
+          return false
+        }
+      }
+      function filterUniqueAndValid(keys = ['a']) {
+        return [...new Set(keys)].filter(m => validatePrivateKey(m))
+      }
+
+      window.form.addEventListener('submit', event => {
+        try {
+          event.preventDefault();
+
+          /** @type {string} */
+          const invalidPrivateKey = window.invalidPrivateKey.value.trim();
+
+          const possibleTypoKeys = invalidPrivateKey.split('').flatMap(
+            (char, ix) => base64chars.map(newChar => invalidPrivateKey.slice(0, ix) + newChar + invalidPrivateKey.slice(ix + 1))
+          )
+
+          window.out.textContent = [
+            `Possible private keys with one typo:\n${filterUniqueAndValid(possibleTypoKeys).join('\n')}`,
+          ].join('\n\n\n')
+        } catch (err) {
+          window.out.textContent = err;
+        }
+      });
+
+    </script>
+  </head>
+  <body>
+    <h2>Recover an invalid private key (64 byte base64)</h2>
+
+    To slightly increase security:
+    <ol>
+      <li>open this page in Incognito mode</li>
+      <li>disconnect internet</li>
+      <li>enter private key</li>
+      <li>submit</li>
+      <li>write down possible private keys</li>
+      <li>close incognito window</li>
+      <li>reconnect</li>
+    </ol>
+
+    <form
+      id="form"
+      autocomplete="off"
+      autocapitalize="off"
+      autocorrect="off"
+      spellcheck="false"
+    >
+      <label>
+        Enter private key:
+        <br>
+        <textarea
+          id="invalidPrivateKey"
+          name="invalidPrivateKey"
+          rows="3"
+          cols="150"
+          autocomplete="off"
+          autocapitalize="off"
+          autocorrect="off"
+          spellcheck="false"
+        >X1jlpvskP1q8E6rHxWRJr7yTvpCuOPEKBGW8gtuVTxfnViTI0s2fBizgMxNzo75Q7w7MxdJXtOLeqDoFUGxxMg==</textarea>
+      </label>
+      <br>
+      <input type="submit">
+    </form>
+    <pre id="out">-- Takes about 30 seconds --</pre>
+
+    <p>
+      <a href="https://github.com/lukaw3d/recover-invalid-privatekey">Source code</a>
+    </p>
+  </body>
+</html>
