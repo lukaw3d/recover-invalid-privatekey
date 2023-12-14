@@ -19,12 +19,9 @@
       function validatePrivateKey(base64key) {
         try {
           const key = base64ToUint(base64key)
+          const pkInKey = key.slice(32)
           /** @type {Uint8Array} */
-          const pkInKey = nacl.sign.keyPair.fromSecretKey(key).publicKey
-          const sk = new Uint8Array(32);
-          for (let i = 0; i < 32; i++) sk[i] = key[i];
-          /** @type {Uint8Array} */
-          const pkFromSk = nacl.sign.keyPair.fromSeed(sk).publicKey
+          const pkFromSk = nacl.sign.keyPair.fromSeed(key.slice(0, 32)).publicKey
           return pkInKey.every((v, idx) => pkInKey[idx] === pkFromSk[idx])
         } catch (e) {
           return false
