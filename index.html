@@ -17,6 +17,7 @@
 
       const base64chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/='.split('')
       const base64ToUint = (base64 = '') => Uint8Array.from(window.atob(base64), (v) => v.charCodeAt(0));
+      const delay = (ms = 1) => new Promise(r => setTimeout(() => r(true), ms))
       function validatePrivateKey(base64key = '') {
         try {
           const key = base64ToUint(base64key)
@@ -28,38 +29,48 @@
           return false
         }
       }
-      function filterUniqueAndValid(keys = ['a']) {
-        return [...new Set(keys)].filter(m => validatePrivateKey(m))
+      async function filterUniqueAndValid(keysWithDupes = ['a', 'a', 'b']) {
+        const keys = [...new Set(keysWithDupes)]
+
+        const results = []
+        for (let i = 0; i < keys.length; i += 100) {
+          await delay(1)
+          const chunkResults = keys.slice(i, i + 100).filter(m => validatePrivateKey(m))
+          results.push(chunkResults)
+        }
+        return results.flat()
       }
       function generateTypos(invalidPrivateKey = '') {
         return invalidPrivateKey.split('').flatMap(
           (char, ix) => base64chars.map(newChar => invalidPrivateKey.slice(0, ix) + newChar + invalidPrivateKey.slice(ix + 1))
         )
       }
-      function estimateTime() {
+      async function estimateTime() {
         const possibleTypoKeys = generateTypos('X1jlpvskP1q8E6rHxWRJr7yTvpCuOPEKBGW8gtuVTxfnViTI0s2fBizgMxNzo75Q7w7MxdJXtOLeqDoFUGxxMg==')
         const startTime = Date.now()
-        filterUniqueAndValid(possibleTypoKeys.slice(0, 30))
+        await filterUniqueAndValid(possibleTypoKeys.slice(0, 30))
         const estimatedTime = (Date.now() - startTime) / 30 * possibleTypoKeys.length
         window.out.textContent = `-- Takes about ${(estimatedTime / 1000).toFixed(0)} seconds --`
       }
 
       estimateTime()
       window.form.addEventListener('submit', event => {
+        event.preventDefault();
+        window.out.textContent += `\nGenerating`
+        ;(async () => {
+        await delay(1)
         try {
-          event.preventDefault();
-
           /** @type {string} */
           const invalidPrivateKey = window.invalidPrivateKey.value.trim();
 
           const possibleTypoKeys = generateTypos(invalidPrivateKey)
-
           window.out.textContent = [
-            `Possible private keys with one typo:\n${filterUniqueAndValid(possibleTypoKeys).join('\n')}`,
+            `Possible private keys with one typo:\n${(await filterUniqueAndValid(possibleTypoKeys)).join('\n')}`,
           ].join('\n\n\n')
         } catch (err) {
           window.out.textContent = err;
         }
+        })()
       });
 
     </script>
